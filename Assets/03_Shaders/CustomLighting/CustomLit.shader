@@ -17,7 +17,7 @@
         {
             HLSLPROGRAM
             
-            #include "Assets/02_Shaders/CustomLighting/CustomLighting.hlsl"
+            #include "CustomLighting.hlsl"
             #pragma multi_compile_instancing
             
             #pragma vertex vert
