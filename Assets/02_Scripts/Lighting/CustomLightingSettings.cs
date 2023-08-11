@@ -25,17 +25,11 @@ public class CustomLightingSettings : ScriptableObject {
     private GlobalKeyword _useLutForDiffuse;
     private GlobalKeyword _useRampForDiffuse;
     private GlobalKeyword _useStepDistance;
-    private GlobalKeyword _useAmbientColor;
-    private GlobalKeyword _useRimSpecular;
     public void CheckKeywords()
     {
         _useLutForDiffuse = GlobalKeyword.Create("_USE_LUT_FOR_DIFFUSE");
         _useRampForDiffuse = GlobalKeyword.Create("_USE_RAMP_FOR_DIFFUSE");
         _useStepDistance = GlobalKeyword.Create("_USE_STEP_DISTANCE");
-        _useAmbientColor = GlobalKeyword.Create("_GLOBAL_ILLUMINATION");
-        _useRimSpecular = GlobalKeyword.Create("_CALCULATE_RIM_SPECULAR");
-        Shader.SetKeyword(_useAmbientColor, true);
-        Shader.SetKeyword(_useRimSpecular, true);
         UpdateKeywords();
     }
     

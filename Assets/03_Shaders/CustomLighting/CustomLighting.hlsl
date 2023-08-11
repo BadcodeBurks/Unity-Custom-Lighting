@@ -17,9 +17,7 @@
 #pragma multi_compile _ _USE_LUT_FOR_DIFFUSE
 #pragma multi_compile _ _USE_RAMP_FOR_DIFFUSE
 //May move
-#pragma multi_compile _ _CALCULATE_RIM_SPECULAR
-#define _SPECULAR_COLOR
-#define _AMBIENT_OCCLUSION
+//#define _AMBIENT_OCCLUSION
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
@@ -48,21 +46,25 @@ float NStep(float val, float step)
     return ceil(val);//floor(val*step + .5)/step;
 }
 #endif
-
+#ifdef _CALCULATE_RIM_SPECULAR
+half3 CalculateRim(half3 lightColor, half3 lightDir, half3 normal, half3 viewDir)
+{
+    half fresnel = pow(1 - saturate(dot(viewDir, normal)), 1);
+    fresnel = 1 - smoothstep(fresnel, .9, 1);
+    half rim = clamp((1-dot(lightDir + viewDir, viewDir))*8 - 7, 0, 1) * fresnel;
+    return lightColor * rim;
+}
+#endif
+#ifdef _SPECULAR_COLOR
 half3 CustomSpecular(half3 lightColor, half3 lightDir, half3 normal, half3 viewDir, half4 specular, half smoothness)
 {
     float3 halfVec = SafeNormalize(float3(lightDir) + float3(viewDir));
     half NdotH = half(saturate(dot(normal, halfVec)));
     half modifier = pow(NdotH, smoothness);
-    #ifdef _CALCULATE_RIM_SPECULAR
-    half fresnel = pow(1 - saturate(dot(viewDir, normal)), 1);
-    fresnel = 1 - smoothstep(fresnel, .95, 1);
-    half rim = clamp((1-dot(lightDir + viewDir, viewDir))*8 - 7, 0, 1) * fresnel;
-    modifier = rim;
-    #endif
     half3 specularReflection = specular.rgb * modifier;
     return lightColor * specularReflection;
 }
+#endif
 
 half3 CalculateCustomLambert(half3 lightColor, half3 lightDirection, half3 normal)
 {
@@ -92,7 +94,10 @@ half3 CalculateCustomBlinnPhong(Light light, InputData inputData, SurfaceData su
     #if defined(_SPECGLOSSMAP) || defined(_SPECULAR_COLOR)
     half smoothness = exp2(5 * surfaceData.smoothness + 1);
 
-    lightSpecularColor += CustomSpecular(light.color, light.direction, inputData.normalWS, inputData.viewDirectionWS, half4(surfaceData.specular, 1), smoothness);
+    lightSpecularColor += CustomSpecular(attenuatedLightColor, light.direction, inputData.normalWS, inputData.viewDirectionWS, half4(surfaceData.specular, 1), smoothness);
+    #endif
+    #ifdef _CALCULATE_RIM_SPECULAR
+    lightSpecularColor += CalculateRim(light.color, light.direction, inputData.normalWS, inputData.viewDirectionWS);
     #endif
     
     return lightDiffuseColor * surfaceData.albedo + lightSpecularColor;
@@ -101,7 +106,7 @@ half3 CalculateCustomBlinnPhong(Light light, InputData inputData, SurfaceData su
 half4 CalculateCustomFinalColor(half4 albedo, LightingData lightingData)
 {
     half4 litColor = CalculateFinalColor(lightingData, 1);
-    //litColor = max(litColor, albedo* unity_AmbientSky);
+    litColor = max(litColor, albedo* unity_AmbientSky);
     return litColor;
 }
 

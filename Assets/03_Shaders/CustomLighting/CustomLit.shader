@@ -6,6 +6,9 @@
     	[NoScaleOffset]_NormalMap ("Normal Texture", 2D) = "bump" {}
         _NormalStrength ("Normal Strength", float) = 0.5
         [NoScaleOffset]_RoughnessMap ("Roughness Map", 2D) = "white" {}
+    	
+    	[Toggle(_CALCULATE_RIM_SPECULAR)] _RimSpecular ("Rim Specular", Float) = 0.0
+    	[Toggle(_SPECULAR_COLOR)] _SpecularColor ("Specular Color", Float) = 0.0
     }
     SubShader
     {
@@ -17,12 +20,14 @@
         {
             HLSLPROGRAM
             
-            #include "CustomLighting.hlsl"
             #pragma multi_compile_instancing
+            #pragma multi_compile _ _SPECULAR_COLOR
+            #pragma multi_compile _ _CALCULATE_RIM_SPECULAR
+            #include "CustomLighting.hlsl"
             
             #pragma vertex vert
             #pragma fragment frag
-            #pragma multi_compile_fog
+            #pragma multi_compile _fog
             
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
