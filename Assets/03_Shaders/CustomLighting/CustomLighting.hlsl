@@ -46,12 +46,19 @@ float NStep(float val, float step)
     return ceil(val);//floor(val*step + .5)/step;
 }
 #endif
-#ifdef _CALCULATE_RIM_SPECULAR
-half3 CalculateRim(half3 lightColor, half3 lightDir, half3 normal, half3 viewDir)
+
+float CalculateFresnel(float3 normal, half3 viewDir)
 {
-    half fresnel = pow(1 - saturate(dot(viewDir, normal)), 1);
-    fresnel = 1 - smoothstep(fresnel, .9, 1);
-    half rim = clamp((1-dot(lightDir + viewDir, viewDir))*8 - 7, 0, 1) * fresnel;
+    return 1 - saturate(dot(viewDir, normal));
+}
+
+#ifdef _CALCULATE_RIM_SPECULAR
+half3 CalculateRim(half3 lightColor, float3 lightDir, float3 normal, half3 viewDir, float fresnel)
+{
+    fresnel = smoothstep(.5, 1, fresnel);
+    float3 lightViewDir = lightDir + viewDir;
+    float viewDirNormal = dot(normal, lightViewDir);
+    half rim = clamp((fresnel-dot(lightViewDir, viewDir) + viewDirNormal), 0, 1) * saturate(1-length(lightViewDir)) * fresnel;
     return lightColor * rim;
 }
 #endif
@@ -79,7 +86,7 @@ half3 CalculateCustomLambert(half3 lightColor, half3 lightDirection, half3 norma
     return lightColor * NdotL;
 }
 
-half3 CalculateCustomBlinnPhong(Light light, InputData inputData, SurfaceData surfaceData)
+half3 CalculateCustomBlinnPhong(Light light, InputData inputData, SurfaceData surfaceData, float fresnel)
 {
     #ifdef _USE_STEP_DISTANCE
     float distanceAttenuation = NStep(light.distanceAttenuation, 2);
@@ -87,7 +94,7 @@ half3 CalculateCustomBlinnPhong(Light light, InputData inputData, SurfaceData su
     float distanceAttenuation = light.distanceAttenuation;
     #endif
 
-    half3 attenuatedLightColor = light.color * (distanceAttenuation * light.shadowAttenuation);
+    float3 attenuatedLightColor = light.color * (distanceAttenuation * light.shadowAttenuation);
     half3 lightDiffuseColor = CalculateCustomLambert(attenuatedLightColor, light.direction, inputData.normalWS);
 
     half3 lightSpecularColor = half3(0,0,0);
@@ -97,7 +104,7 @@ half3 CalculateCustomBlinnPhong(Light light, InputData inputData, SurfaceData su
     lightSpecularColor += CustomSpecular(attenuatedLightColor, light.direction, inputData.normalWS, inputData.viewDirectionWS, half4(surfaceData.specular, 1), smoothness);
     #endif
     #ifdef _CALCULATE_RIM_SPECULAR
-    lightSpecularColor += CalculateRim(light.color, light.direction, inputData.normalWS, inputData.viewDirectionWS);
+    lightSpecularColor += CalculateRim(light.color, light.direction, inputData.normalWS, inputData.viewDirectionWS, fresnel);
     #endif
     
     return lightDiffuseColor * surfaceData.albedo + lightSpecularColor;
@@ -125,7 +132,9 @@ half4 CustomLighting(InputData inputData, SurfaceData surfaceData)
     half4 shadowMask = CalculateShadowMask(inputData);
     AmbientOcclusionFactor aoFactor = CreateAmbientOcclusionFactor(inputData, surfaceData);
     Light mainLight = GetMainLight(inputData, shadowMask, aoFactor);
+    float fresnel = CalculateFresnel(inputData.normalWS, inputData.viewDirectionWS);
 
+    
     MixRealtimeAndBakedGI(mainLight, inputData.normalWS, inputData.bakedGI, aoFactor);
 
     inputData.bakedGI *= surfaceData.albedo;
@@ -135,7 +144,7 @@ half4 CustomLighting(InputData inputData, SurfaceData surfaceData)
     if (IsMatchingLightLayer(mainLight.layerMask, meshRenderingLayers))
 #endif
     {
-        lightingData.mainLightColor += CalculateCustomBlinnPhong(mainLight, inputData, surfaceData);
+        lightingData.mainLightColor += CalculateCustomBlinnPhong(mainLight, inputData, surfaceData, fresnel);
     }
 
     #if defined(_ADDITIONAL_LIGHTS)
@@ -162,7 +171,7 @@ half4 CustomLighting(InputData inputData, SurfaceData surfaceData)
         if (IsMatchingLightLayer(light.layerMask, meshRenderingLayers))
 #endif
         {
-            lightingData.additionalLightsColor += CalculateCustomBlinnPhong(light, inputData, surfaceData);
+            lightingData.additionalLightsColor += CalculateCustomBlinnPhong(light, inputData, surfaceData, fresnel);
         }
     LIGHT_LOOP_END
     #endif
@@ -175,8 +184,6 @@ half4 CustomLighting(InputData inputData, SurfaceData surfaceData)
 }
 
 void CalculateCustomLighting_float(InputData inputData, SurfaceData surfaceData, out half4 Color) {
-    
-
     Color = CustomLighting(inputData, surfaceData);
 }
 

@@ -4,7 +4,8 @@
     {
         _MainTex ("Texture", 2D) = "white" {}
     	[NoScaleOffset]_NormalMap ("Normal Texture", 2D) = "bump" {}
-        _NormalStrength ("Normal Strength", float) = 0.5
+        [Toggle(_NORMALMAP)] _NormalMapEnabled ("Normal Map Enabled", Float) = 0.0
+    	_NormalStrength ("Normal Strength", float) = 0.5
         [NoScaleOffset]_RoughnessMap ("Roughness Map", 2D) = "white" {}
     	
     	[Toggle(_CALCULATE_RIM_SPECULAR)] _RimSpecular ("Rim Specular", Float) = 0.0
@@ -23,6 +24,7 @@
             #pragma multi_compile_instancing
             #pragma multi_compile _ _SPECULAR_COLOR
             #pragma multi_compile _ _CALCULATE_RIM_SPECULAR
+            #pragma multi_compile _ _NORMALMAP
             #include "CustomLighting.hlsl"
             
             #pragma vertex vert
@@ -47,7 +49,9 @@
                 float4 pos : POSITION;
                 float2 uv : TEXCOORD0;
                 float3 normal : NORMAL;
-            	half4 tangent : TANGENT;
+            	#ifdef _NORMALMAP
+            	float4 tangent : TANGENT;
+            	#endif
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -57,9 +61,10 @@
                 float4 pos : SV_POSITION;
                 float3 world : TEXCOORD1;
                 float3 normal : TEXCOORD2;
+            	#ifdef _NORMALMAP
             	float3 binormal : TEXCOORD3;
             	float3 tangent : TEXCOORD4;
-
+            	#endif
             	//UNITY_FOG_COORDS(1)
             	
                 //if shader need a view direction, use below code in shader 
@@ -78,12 +83,12 @@
                 o.pos = TransformObjectToHClip(v.pos);
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);
             	o.world = TransformObjectToWorld(v.pos);
-                o.normal = normalize(TransformObjectToWorldNormal(v.normal));
-				
-            	o.tangent = normalize(TransformObjectToWorldNormal(v.tangent));
+                o.normal = TransformObjectToWorldNormal(v.normal);
+				#ifdef _NORMALMAP
+            	o.tangent = TransformObjectToWorldNormal(v.tangent);
             	float sgn = v.tangent.w;
             	o.binormal = normalize(sgn * cross(o.normal, o.tangent.xyz));
-				
+				#endif
                 //UNITY_TRANSFER_FOG(o,o.vertex);
                 return o;
             }
@@ -96,12 +101,17 @@
             	clip(albedo.a - .5);
                 half4 roughness = SAMPLE_TEXTURE2D(_RoughnessMap, sampler_RoughnessMap, i.uv * _MainTex_ST.xy + _MainTex_ST.zw);
 
+            	#ifdef _NORMALMAP
             	float3 normal = UnpackNormal(SAMPLE_TEXTURE2D(_NormalMap, sampler_NormalMap, i.uv * _MainTex_ST.xy + _MainTex_ST.zw));
 				normal = normalize(normal);
             	
             	float3x3 TBN = float3x3(normalize(i.tangent), normalize(i.binormal), normalize(i.normal));
             	TBN = transpose(TBN);
 				i.normal = normalize(lerp(i.normal, mul(TBN, normal), _NormalStrength));
+            	#else
+            	i.normal = normalize(i.normal);
+            	#endif
+            	
             	
             	InputData inputData = (InputData)0;
             	inputData.positionWS = i.world;
@@ -109,6 +119,7 @@
             	inputData.positionCS = i.pos;
             	inputData.viewDirectionWS = GetWorldSpaceNormalizeViewDir(i.world);
             	inputData.shadowCoord = TransformWorldToShadowCoord(i.world);
+            	//inputData.normalizedScreenSpaceUV = ComputeScreenPos()
 
             	SurfaceData surfaceData = (SurfaceData)0;
             	surfaceData.albedo = albedo.rgb;
