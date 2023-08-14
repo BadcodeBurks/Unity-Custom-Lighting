@@ -31,11 +31,16 @@ float4 GetDiffuseCell(float diffuse)
     return SAMPLE_TEXTURE2D(_LightLut, sampler_LightLut, float2(diffuse, 0.5));
 }
 #endif
+
+float Ramp01(float val, float min, float max)
+{
+    return saturate((val - min) / (max - min));
+}
+
 #ifdef _USE_RAMP_FOR_DIFFUSE
 float RampDiffuse(float val)
 {
-    float rampedVal = (val - _DiffuseRamp.x) / (_DiffuseRamp.y - _DiffuseRamp.x);
-    return clamp(rampedVal, 0, 1);
+    return Ramp01(val, _DiffuseRamp.x, _DiffuseRamp.y);
 }
 
 #endif
@@ -59,6 +64,10 @@ half3 CalculateRim(half3 lightColor, float3 lightDir, float3 normal, half3 viewD
     float3 lightViewDir = lightDir + viewDir;
     float viewDirNormal = dot(normal, lightViewDir);
     half rim = clamp((fresnel-dot(lightViewDir, viewDir) + viewDirNormal), 0, 1) * saturate(1-length(lightViewDir)) * fresnel;
+    #ifdef _USE_RAMP_FOR_DIFFUSE
+    rim = Ramp01(rim, _DiffuseRamp.x, _DiffuseRamp.y);
+    #endif
+    
     return lightColor * rim;
 }
 #endif

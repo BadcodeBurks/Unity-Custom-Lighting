@@ -2,9 +2,10 @@
 {
     Properties
     {
+    	_TintColor ("Tint Color", Color) = (1,1,1,1)
         _MainTex ("Texture", 2D) = "white" {}
-    	[NoScaleOffset]_NormalMap ("Normal Texture", 2D) = "bump" {}
-        [Toggle(_NORMALMAP)] _NormalMapEnabled ("Normal Map Enabled", Float) = 0.0
+	    [Toggle(_NORMALMAP)] _NormalMapEnabled ("Normal Map Enabled", Float) = 0.0
+        [NoScaleOffset]_NormalMap ("Normal Texture", 2D) = "bump" {}
     	_NormalStrength ("Normal Strength", float) = 0.5
         [NoScaleOffset]_RoughnessMap ("Roughness Map", 2D) = "white" {}
     	
@@ -92,12 +93,12 @@
                 //UNITY_TRANSFER_FOG(o,o.vertex);
                 return o;
             }
-            
+            half4 _TintColor;
             half4 frag (v2f i) : SV_Target
             {
                 UNITY_SETUP_INSTANCE_ID(i);
                 // sample the texture
-				half4 albedo = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.uv * _MainTex_ST.xy + _MainTex_ST.zw);
+				half4 albedo = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.uv * _MainTex_ST.xy + _MainTex_ST.zw) * _TintColor;
             	clip(albedo.a - .5);
                 half4 roughness = SAMPLE_TEXTURE2D(_RoughnessMap, sampler_RoughnessMap, i.uv * _MainTex_ST.xy + _MainTex_ST.zw);
 
