@@ -8,9 +8,13 @@
         [NoScaleOffset]_NormalMap ("Normal Texture", 2D) = "bump" {}
     	_NormalStrength ("Normal Strength", float) = 0.5
         [NoScaleOffset]_RoughnessMap ("Roughness Map", 2D) = "white" {}
-    	
+    	_Smoothness ("Smoothness", Range(0,1)) = 0.5
     	[Toggle(_CALCULATE_RIM_SPECULAR)] _RimSpecular ("Rim Specular", Float) = 0.0
     	[Toggle(_SPECULAR_COLOR)] _SpecularColor ("Specular Color", Float) = 0.0
+        _SpecularStrength ("Specular Strength", Range(0,2)) = 0.5
+    	[Toggle(_EMISSION)] _Emission ("Emission", Float) = 0.0
+		[NoScaleOffset]_EmissionMap ("Emission Map", 2D) = "white" {}
+    	[HDR]_EmissionColor ("Emission Color", Color) = (0,0,0,0)
     }
     SubShader
     {
@@ -26,6 +30,7 @@
             #pragma multi_compile _ _SPECULAR_COLOR
             #pragma multi_compile _ _CALCULATE_RIM_SPECULAR
             #pragma multi_compile _ _NORMALMAP
+            #pragma multi_compile _ _EMISSION
             #include "CustomLighting.hlsl"
             
             #pragma vertex vert
@@ -35,9 +40,6 @@
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
             TEXTURE2D(_MainTex); SAMPLER(sampler_MainTex);
-            TEXTURE2D(_NormalMap); SAMPLER(sampler_NormalMap);
-            TEXTURE2D(_RoughnessMap); SAMPLER(sampler_RoughnessMap);
-            float _NormalStrength;
             
             CBUFFER_START(UnityPerMaterial)
 
@@ -93,14 +95,27 @@
                 //UNITY_TRANSFER_FOG(o,o.vertex);
                 return o;
             }
+
+            #ifdef _NORMALMAP
+            TEXTURE2D(_NormalMap); SAMPLER(sampler_NormalMap);
+			float _NormalStrength;
+            #endif
+            TEXTURE2D(_RoughnessMap); SAMPLER(sampler_RoughnessMap);
+			#ifdef _EMISSION
+            TEXTURE2D(_EmissionMap); SAMPLER(sampler_EmissionMap);
+			float4 _EmissionColor;
+            #endif
+            
             half4 _TintColor;
+            float _Smoothness;
+            float _SpecularStrength;
             half4 frag (v2f i) : SV_Target
             {
                 UNITY_SETUP_INSTANCE_ID(i);
                 // sample the texture
 				half4 albedo = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.uv * _MainTex_ST.xy + _MainTex_ST.zw) * _TintColor;
             	clip(albedo.a - .5);
-                half4 roughness = SAMPLE_TEXTURE2D(_RoughnessMap, sampler_RoughnessMap, i.uv * _MainTex_ST.xy + _MainTex_ST.zw);
+                half4 roughness = SAMPLE_TEXTURE2D(_RoughnessMap, sampler_RoughnessMap, i.uv * _MainTex_ST.xy + _MainTex_ST.zw) * _Smoothness;;
 
             	#ifdef _NORMALMAP
             	float3 normal = UnpackNormal(SAMPLE_TEXTURE2D(_NormalMap, sampler_NormalMap, i.uv * _MainTex_ST.xy + _MainTex_ST.zw));
@@ -126,7 +141,12 @@
             	surfaceData.albedo = albedo.rgb;
             	surfaceData.alpha = albedo.a;
             	surfaceData.smoothness = roughness;
-            	surfaceData.specular = 1;
+            	#ifdef _SPECULAR_COLOR
+            	surfaceData.specular = _SpecularStrength;
+				#endif
+            	#ifdef _EMISSION
+            	surfaceData.emission = SAMPLE_TEXTURE2D(_EmissionMap, sampler_EmissionMap, i.uv * _MainTex_ST.xy + _MainTex_ST.zw) * _EmissionColor;
+            	#endif
             	
                 CalculateCustomLighting_float(inputData, surfaceData, albedo);
                 albedo.w = 1;

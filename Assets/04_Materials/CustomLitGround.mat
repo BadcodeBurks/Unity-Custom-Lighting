@@ -12,6 +12,7 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
+  - _NORMALMAP
   - _SPECULAR_COLOR
   m_InvalidKeywords: []
   m_LightmapFlags: 4
@@ -26,10 +27,10 @@ Material:
     m_TexEnvs:
     - _MainTex:
         m_Texture: {fileID: 0}
-        m_Scale: {x: 2, y: 2}
+        m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _NormalMap:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: a50f8cb746929284a905cc000c278e34, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _RoughnessMap:
@@ -39,11 +40,14 @@ Material:
     m_Ints: []
     m_Floats:
     - _CALCULATE_RIM_SPECULAR: 0
-    - _NormalMapEnabled: 0
-    - _NormalStrength: 0
+    - _NormalMapEnabled: 1
+    - _NormalStrength: 0.5
     - _RimSpecular: 0
+    - _Smoothness: 1
     - _SpecularColor: 1
+    - _SpecularStrength: 0.5
     m_Colors:
     - _RimColor: {r: 1, g: 1, b: 1, a: 1}
     - _SpecularColor: {r: 1, g: 1, b: 1, a: 1}
+    - _TintColor: {r: 1, g: 0.7575158, b: 0.514151, a: 1}
   m_BuildTextureStacks: []

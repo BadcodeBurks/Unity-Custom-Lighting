@@ -17,7 +17,7 @@ MonoBehaviour:
   gradient:
     serializedVersion: 2
     key0: {r: 0, g: 0, b: 0, a: 1}
-    key1: {r: 0.6981132, g: 0.6981132, b: 0.6981132, a: 1}
+    key1: {r: 0.084905684, g: 0.084905684, b: 0.084905684, a: 1}
     key2: {r: 1, g: 1, b: 1, a: 1}
     key3: {r: 1, g: 1, b: 1, a: 0}
     key4: {r: 1, g: 1, b: 1, a: 0}
@@ -46,4 +46,5 @@ MonoBehaviour:
     m_NumAlphaKeys: 3
   lutSegmentCount: 12
   ambientColor: {r: 0.16037738, g: 0.102127105, b: 0.102127105, a: 1}
-  rampRange: {x: 0, y: 0.704}
+  rampRange: {x: 0.106, y: 0.106}
+  RimDistance: 0.66

@@ -22,6 +22,7 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
 uniform float2 _DiffuseRamp;
+uniform float _RimDistance;
 TEXTURE2D(_LightLut);
 SAMPLER(sampler_LightLut);
 
@@ -63,9 +64,9 @@ half3 CalculateRim(half3 lightColor, float3 lightDir, float3 normal, half3 viewD
     fresnel = smoothstep(.5, 1, fresnel);
     float3 lightViewDir = lightDir + viewDir;
     float viewDirNormal = dot(normal, lightViewDir);
-    half rim = clamp((fresnel-dot(lightViewDir, viewDir) + viewDirNormal), 0, 1) * saturate(1-length(lightViewDir)) * fresnel;
+    half rim = clamp((fresnel-dot(lightViewDir, viewDir) + viewDirNormal), 0, 1) * saturate(_RimDistance-length(lightViewDir)) * fresnel;
     #ifdef _USE_RAMP_FOR_DIFFUSE
-    rim = Ramp01(rim, _DiffuseRamp.x, _DiffuseRamp.y);
+    rim = Ramp01(rim, _DiffuseRamp.x+.1, _DiffuseRamp.y+.1);
     #endif
     
     return lightColor * rim;
@@ -77,6 +78,9 @@ half3 CustomSpecular(half3 lightColor, half3 lightDir, half3 normal, half3 viewD
     float3 halfVec = SafeNormalize(float3(lightDir) + float3(viewDir));
     half NdotH = half(saturate(dot(normal, halfVec)));
     half modifier = pow(NdotH, smoothness);
+    #ifdef _USE_RAMP_FOR_DIFFUSE
+    modifier = Ramp01(modifier, _DiffuseRamp.x, _DiffuseRamp.y);
+    #endif
     half3 specularReflection = specular.rgb * modifier;
     return lightColor * specularReflection;
 }
@@ -110,7 +114,7 @@ half3 CalculateCustomBlinnPhong(Light light, InputData inputData, SurfaceData su
     #if defined(_SPECGLOSSMAP) || defined(_SPECULAR_COLOR)
     half smoothness = exp2(5 * surfaceData.smoothness + 1);
 
-    lightSpecularColor += CustomSpecular(attenuatedLightColor, light.direction, inputData.normalWS, inputData.viewDirectionWS, half4(surfaceData.specular, 1), smoothness);
+    lightSpecularColor += CustomSpecular(attenuatedLightColor, light.direction, inputData.normalWS, inputData.viewDirectionWS, half4(surfaceData.specular, 1), smoothness) * surfaceData.smoothness;
     #endif
     #ifdef _CALCULATE_RIM_SPECULAR
     lightSpecularColor += CalculateRim(light.color, light.direction, inputData.normalWS, inputData.viewDirectionWS, fresnel);
@@ -187,6 +191,10 @@ half4 CustomLighting(InputData inputData, SurfaceData surfaceData)
 
     #if defined(_ADDITIONAL_LIGHTS_VERTEX)
     lightingData.vertexLightingColor += inputData.vertexLighting * surfaceData.albedo;
+    #endif
+
+    #ifdef _EMISSION
+    lightingData.emissionColor = surfaceData.emission;
     #endif
 
     return CalculateCustomFinalColor(half4(surfaceData.albedo, 1), lightingData);

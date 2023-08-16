@@ -42,6 +42,7 @@ namespace Lighting.Editor
                     _target.rampRange.y = Mathf.Max(EditorGUILayout.Slider("Ramp Range Max", _target.rampRange.y, 0, 1), _target.rampRange.x);
                     break;
             }
+            _target.RimDistance = EditorGUILayout.Slider("Rim Distance", _target.RimDistance, 0, 2);
             _target.ambientColor = EditorGUILayout.ColorField("Ambient Color", _target.ambientColor);
             if (EditorGUI.EndChangeCheck())
             {

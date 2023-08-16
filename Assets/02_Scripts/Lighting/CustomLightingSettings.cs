@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -16,15 +17,24 @@ public class CustomLightingSettings : ScriptableObject {
     public int lutSegmentCount;
     public Color ambientColor;
     public Vector2 rampRange;
-
+    public float RimDistance;
     private Texture2D _lightLut;
     
     private int _ambientColorID;
     private int _lightLutID;
     private int _lightRampID;
+    private int _rimDistanceID;
     private GlobalKeyword _useLutForDiffuse;
     private GlobalKeyword _useRampForDiffuse;
     private GlobalKeyword _useStepDistance;
+
+    private void Awake()
+    {
+        GetIDs();
+        CheckKeywords();
+        UpdateLightingSettings();
+    }
+
     public void CheckKeywords()
     {
         _useLutForDiffuse = GlobalKeyword.Create("_USE_LUT_FOR_DIFFUSE");
@@ -37,10 +47,14 @@ public class CustomLightingSettings : ScriptableObject {
         _ambientColorID = Shader.PropertyToID("_AmbientColor");
         _lightLutID = Shader.PropertyToID("_LightLut");
         _lightRampID = Shader.PropertyToID("_DiffuseRamp");
+        _rimDistanceID = Shader.PropertyToID("_RimDistance");
     }
 
     private void GenerateLut(){
-        if (lutSegmentCount == 0) lutSegmentCount = 1;
+        if (lutSegmentCount == 0)
+        {
+            lutSegmentCount = 1;
+        }
         _lightLut = new Texture2D(lutSegmentCount,1)
         {
             filterMode = FilterMode.Point,
@@ -59,6 +73,7 @@ public class CustomLightingSettings : ScriptableObject {
         GenerateLut();
         Shader.SetGlobalTexture(_lightLutID, _lightLut);
         Shader.SetGlobalVector(_lightRampID, rampRange);
+        Shader.SetGlobalFloat(_rimDistanceID, RimDistance);
         RenderSettings.ambientLight = ambientColor;
     }
 
